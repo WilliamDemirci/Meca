@@ -52,22 +52,22 @@ public class MainActivity extends AppCompatActivity {
         findViewById();
         setTheme();
         setBluetooth();
-        setDiconnectBluetoothDevice();
+        setDisconnectBluetoothDevice();
         sendData();
     }
 
-    private void getBluettothAdress() { // get bluetooth address of selected device from SelectBluetoothDeviceActivity
+    private void getBluetoothAdress() { // get bluetooth address of selected device from SelectBluetoothDeviceActivity
         Intent selectBluetoothDeviceIntent = getIntent();
         selectedBluetoothaDeviceAdress = selectBluetoothDeviceIntent.getStringExtra(SelectBluetoothDeviceActivity.EXTRA_SELECTED_BLUETOOTH_DEVICE_ADDRESS);
     }
 
     private void setBluetooth() {
-        getBluettothAdress();
+        getBluetoothAdress();
 
         new ConnectBluetooth().execute();
     }
 
-    private void setDiconnectBluetoothDevice() {
+    private void setDisconnectBluetoothDevice() {
         disconnectBluetoothDeviceButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -150,20 +150,6 @@ public class MainActivity extends AppCompatActivity {
             progressDialogConnection.dismiss();
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
     private void sendData() {
         getMove();
