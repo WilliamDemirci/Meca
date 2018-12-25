@@ -1,6 +1,12 @@
 package comwilliamdemirci.github.meca;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
@@ -11,16 +17,31 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Switch;
+import android.widget.Toast;
+
+import java.io.IOException;
+import java.util.UUID;
 
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
+    // Theme
     private Switch themeSwitch;
     private ConstraintLayout mainLayout;
+    // Layout control
     private JoystickView joystickRight;
     private ImageView turnAroundLeftButton;
     private ImageView turnAroundRightButton;
     private SeekBar speedBar;
+    // Bluetooth
+    private ImageView disconnectBluetoothDeviceButton;
+    private String selectedBluetoothaDeviceAdress = null;
+    private ProgressDialog progressDialogConnection;
+    private BluetoothAdapter bluetoothAdapter = null;
+    private BluetoothSocket bluetoothSocket = null;
+    private boolean bluetoothConnected = false;
+    static UUID bluetoothDeviceUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    // Logs
     private int i = 0;
 
     @Override
@@ -30,8 +51,119 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById();
         setTheme();
+        setBluetooth();
+        setDiconnectBluetoothDevice();
         sendData();
     }
+
+    private void getBluettothAdress() { // get bluetooth address of selected device from SelectBluetoothDeviceActivity
+        Intent selectBluetoothDeviceIntent = getIntent();
+        selectedBluetoothaDeviceAdress = selectBluetoothDeviceIntent.getStringExtra(SelectBluetoothDeviceActivity.EXTRA_SELECTED_BLUETOOTH_DEVICE_ADDRESS);
+    }
+
+    private void setBluetooth() {
+        getBluettothAdress();
+
+        new ConnectBluetooth().execute();
+    }
+
+    private void setDiconnectBluetoothDevice() {
+        disconnectBluetoothDeviceButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                disconnectBluetoothDevice();
+            }
+        });
+    }
+
+    private void disconnectBluetoothDevice() {
+        if (bluetoothSocket!=null) {
+            try {
+                bluetoothSocket.close();
+                Toast.makeText(getApplicationContext(), "Disconnected", Toast.LENGTH_LONG).show();
+            }
+            catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "Could not disconnect to the device", Toast.LENGTH_LONG).show();
+            }
+        }
+        finish(); // go back to the SelectBluetoothDeviceActivity
+    }
+
+    private void turnOffLed() {
+        if (bluetoothSocket!=null) {
+            try {
+                bluetoothSocket.getOutputStream().write("0".toString().getBytes());
+            }
+            catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "Couldn't send data to the device", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void turnOnLed() {
+        if (bluetoothSocket!=null) {
+            try {
+                bluetoothSocket.getOutputStream().write("1".toString().getBytes());
+            }
+            catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "Couldn't send data to the device", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private class ConnectBluetooth extends AsyncTask<Void, Void, Void> {
+        private boolean connected = true;
+
+        @Override
+        protected void onPreExecute() {
+            progressDialogConnection = ProgressDialog.show(MainActivity.this, "Connection", "Please wait during the connection.");  //show a progress dialog
+        }
+
+        @Override
+        protected Void doInBackground(Void... devices) { // while onPreExecute()
+            try {
+                if (bluetoothSocket == null || !bluetoothConnected) {
+                    bluetoothAdapter = BluetoothAdapter.getDefaultAdapter(); // create a bluetooth adapter
+                    BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(selectedBluetoothaDeviceAdress); // connect to the bluetooth device
+                    bluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(bluetoothDeviceUUID); // type of bluetooth protocol
+                    BluetoothAdapter.getDefaultAdapter().cancelDiscovery(); // stop bluetooth discovery
+                    bluetoothSocket.connect();
+                }
+            }
+            catch (IOException e) {
+                connected = false;
+//                Toast.makeText(getApplicationContext(), "Error : + " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            if (!connected) {
+                Toast.makeText(getApplicationContext(), "Connection failed", Toast.LENGTH_LONG).show();
+                finish(); // go back to the SelectBluetoothDeviceActivity
+            }
+            else {
+                Toast.makeText(getApplicationContext(), "Connected", Toast.LENGTH_LONG).show();
+                bluetoothConnected = true;
+            }
+            progressDialogConnection.dismiss();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
     private void sendData() {
         getMove();
@@ -76,10 +208,12 @@ public class MainActivity extends AppCompatActivity {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     turnAroundLeftButton.setImageResource(R.drawable.ic_turn_around_pressed_512dp);
                     Log.d("Move", "Turn around left pressed");
+                    turnOnLed();
                 }
                 else {
                     turnAroundLeftButton.setImageResource(R.drawable.ic_turn_around_released_512dp);
                     Log.d("Move", "Turn around left released");
+                    turnOffLed();
                 }
                 return true;
             }
@@ -157,5 +291,12 @@ public class MainActivity extends AppCompatActivity {
         turnAroundLeftButton = (ImageView) findViewById(R.id.turnAroundLeftButton);
         turnAroundRightButton = (ImageView) findViewById(R.id.turnAroundRightButton);
         speedBar = (SeekBar) findViewById(R.id.speedBar);
+        disconnectBluetoothDeviceButton = (ImageView) findViewById(R.id.disconnectButton);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        disconnectBluetoothDevice();
     }
 }
