@@ -43,6 +43,10 @@ public class MainActivity extends AppCompatActivity {
     static UUID bluetoothDeviceUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     // Logs
     private int i = 0;
+    // Control
+    private int move = 0;
+    private int speed = 100;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,13 +60,13 @@ public class MainActivity extends AppCompatActivity {
         sendData();
     }
 
-    private void getBluetoothAdress() { // get bluetooth address of selected device from SelectBluetoothDeviceActivity
+    private void getBluetoothAddress() { // get bluetooth address of selected device from SelectBluetoothDeviceActivity
         Intent selectBluetoothDeviceIntent = getIntent();
         selectedBluetoothaDeviceAdress = selectBluetoothDeviceIntent.getStringExtra(SelectBluetoothDeviceActivity.EXTRA_SELECTED_BLUETOOTH_DEVICE_ADDRESS);
     }
 
     private void setBluetooth() {
-        getBluetoothAdress();
+        getBluetoothAddress();
 
         new ConnectBluetooth().execute();
     }
@@ -89,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
         finish(); // go back to the SelectBluetoothDeviceActivity
     }
 
-    private void turnOffLed() {
+    /*private void turnOffLed() {
         if (bluetoothSocket!=null) {
             try {
                 bluetoothSocket.getOutputStream().write("0".toString().getBytes());
@@ -109,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Couldn't send data to the device", Toast.LENGTH_LONG).show();
             }
         }
-    }
+    }*/
 
     private class ConnectBluetooth extends AsyncTask<Void, Void, Void> {
         private boolean connected = true;
@@ -152,12 +156,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendData() {
-        getMove();
-        getSpeed();
+        @SuppressLint("DefaultLocale") String data = "s" + String.format("%03d", getMove()) + String.format("%03d", getSpeed());
+        if (bluetoothSocket!=null) {
+            try {
+                bluetoothSocket.getOutputStream().write(data.getBytes());
+            }
+            catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "Couldn't send data to the device", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
-    private void getSpeed() {
+    private int getSpeed() {
         getSpeedBarValue();
+
+        return speed;
     }
 
     private void getSpeedBarValue() {
@@ -166,6 +179,8 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 i++;
                 Log.d("Speed", "Seekbar : " + String.valueOf(progress) + " | i = " + String.valueOf(i));
+                speed = progress;
+                sendData();
             }
 
             @Override
@@ -180,9 +195,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void getMove() {
+    private int getMove() {
         getJoystickMove();
         getTurnAroundAction();
+
+        return move;
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -194,12 +211,16 @@ public class MainActivity extends AppCompatActivity {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     turnAroundLeftButton.setImageResource(R.drawable.ic_turn_around_pressed_512dp);
                     Log.d("Move", "Turn around left pressed");
-                    turnOnLed();
+//                    turnOnLed();
+                    move = 9;
+                    sendData();
                 }
                 else {
                     turnAroundLeftButton.setImageResource(R.drawable.ic_turn_around_released_512dp);
                     Log.d("Move", "Turn around left released");
-                    turnOffLed();
+//                    turnOffLed();
+                    move = 0;
+                    sendData();
                 }
                 return true;
             }
@@ -212,10 +233,14 @@ public class MainActivity extends AppCompatActivity {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     turnAroundRightButton.setImageResource(R.drawable.ic_turn_around_pressed_512dp);
                     Log.d("Move", "Turn around right pressed");
+                    move = 10;
+                    sendData();
                 }
                 else {
                     turnAroundRightButton.setImageResource(R.drawable.ic_turn_around_released_512dp);
                     Log.d("Move", "Turn around right released");
+                    move = 0;
+                    sendData();
                 }
                 return true;
             }
@@ -230,28 +255,40 @@ public class MainActivity extends AppCompatActivity {
                 i++;
                 if((angle > 337) || (angle <= 22) && (strength > 0)) { // right
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - right" +  " | i = " +String.valueOf(i));
+                    move = 1;
                 }
                 else if((angle > 22) && (angle <= 67) && (strength > 0)) { // up right
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - up right" +  " | i = " +String.valueOf(i));
+                    move = 2;
                 }
                 else if((angle > 67) && (angle <= 112) && (strength > 0)) { // up
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - up" +  " | i = " +String.valueOf(i));
+                    move = 3;
                 }
                 else if((angle > 112) && (angle <= 157) && (strength > 0)) { // up left
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - up left" +  " | i = " +String.valueOf(i));
+                    move = 4;
                 }
                 else if((angle > 157) && (angle <= 202) && (strength > 0)) { // left
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - left" +  " | i = " +String.valueOf(i));
+                    move = 5;
                 }
                 else if((angle > 202) && (angle <= 247) && (strength > 0)) { // down left
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - down left" +  " | i = " +String.valueOf(i));
+                    move = 6;
                 }
                 else if((angle > 247) && (angle <= 292) && (strength > 0)) { // down
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - down" +  " | i = " +String.valueOf(i));
+                    move = 7;
                 }
                 else if((angle > 292) && (angle <= 337) && (strength > 0)) { // down right
                     Log.d("Move", "Joystick : " + String.valueOf(angle) + "° - down right" +  " | i = " +String.valueOf(i));
+                    move = 8;
                 }
+                else {
+                    move = 0;
+                }
+                sendData();
             }
         });
     }
