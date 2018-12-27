@@ -41,11 +41,11 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothSocket bluetoothSocket = null;
     private boolean bluetoothConnected = false;
     static UUID bluetoothDeviceUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    // Logs
-    private int i = 0;
     // Control
     private int move = 0;
     private int speed = 100;
+    // Logs
+    private int i = 0;
 
 
     @Override
@@ -156,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendData() {
-        @SuppressLint("DefaultLocale") String data = "s" + String.format("%03d", getMove()) + String.format("%03d", getSpeed());
+        @SuppressLint("DefaultLocale") String data = "s" + String.format("%02d", getMove()) + String.format("%03d", getSpeed());
         if (bluetoothSocket!=null) {
             try {
                 bluetoothSocket.getOutputStream().write(data.getBytes());
